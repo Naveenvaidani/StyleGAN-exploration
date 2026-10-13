@@ -47,11 +47,11 @@ The generator consists of four conceptual parts:
 3. **Styled convolutions:** eight convolutional blocks process the feature map. The spatial resolution is increased from $4 \times 4$ to $8 \times 8$, $16 \times 16$, and finally $32 \times 32$ between selected blocks.
 4. **RGB projection:** a final $1 \times 1$ convolution with `tanh` activation converts the feature map into a three-channel image.
 
-For a feature tensor $x$ and style vector $w$, the AdaIN layer computes channel-wise scale and bias parameters:
+For a feature tensor `x` and style vector `w`, the AdaIN layer computes channel-wise scale and bias parameters. The equation is written in a renderer-safe code block so it remains visible in GitHub and basic Markdown viewers:
 
-$$
-\operatorname{AdaIN}(x, w) = \sigma(w) \cdot \frac{x - \mu(x)}{\sqrt{\operatorname{var}(x) + \epsilon}} + \beta(w),
-$$
+```text
+AdaIN(x, w) = scale(w) * (x - mean(x)) / sqrt(var(x) + epsilon) + bias(w)
+```
 
 where the affine transformation of $w$ produces the scale and bias values. The notebook also adds learned-strength Gaussian noise at each styled convolution, allowing stochastic local variation in the synthesized image.
 
@@ -61,17 +61,16 @@ The discriminator is a convolutional binary classifier with four downsampling bl
 
 ### Adversarial objective
 
-For a real image $x$ and generated image $G(z)$, the discriminator minimizes the non-saturating logistic loss:
+For a real image `x` and generated image `G(z)`, the discriminator minimizes the non-saturating logistic loss. The generator minimizes the corresponding non-saturating generator loss:
 
-$$
-\mathcal{L}_D = \mathbb{E}_{x}[\operatorname{softplus}(-D(x))] + \mathbb{E}_{z}[\operatorname{softplus}(D(G(z)))].
-$$
+```text
+Discriminator: L_D = mean(softplus(-D(real))) + mean(softplus(D(fake)))
+Generator:     L_G = mean(softplus(-D(fake)))
 
-The generator minimizes:
+where fake = G(z)
+```
 
-$$
-\mathcal{L}_G = \mathbb{E}_{z}[\operatorname{softplus}(-D(G(z)))].
-$$
+In these expressions, `D(.)` is the discriminator logit, `G(z)` is a generated image, and `softplus(a) = log(1 + exp(a))`.
 
 Both networks use Adam with learning rate $2 \times 10^{-4}$, $\beta_1 = 0$, and $\beta_2 = 0.99$. The notebook performs one discriminator update and one generator update per batch.
 
